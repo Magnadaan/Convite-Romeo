@@ -75,7 +75,7 @@ html,body{
 
 /* ===== 2. CONVITE ESPECIAL ===== */
 #c2{background:radial-gradient(circle at 50% 45%,#fff6cf,#f4cf6a 55%,#c98d2a);padding:0 1rem}
-.especial{font-family:var(--mao);font-weight:700;font-size:clamp(2.6rem,21cqw,8rem);line-height:1;padding:.06em .1em .16em;text-align:center;width:100%;background:linear-gradient(#fff2a6,#e0a923 55%,#a8731a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 4px rgba(120,70,0,.45))}
+.especial{font-family:var(--mao);font-weight:700;font-size:clamp(2.6rem,21cqw,8rem);line-height:1;padding:.06em .1em .16em;text-align:center;width:100%;color:#a8731a;background:linear-gradient(#fff2a6,#e0a923 55%,#a8731a);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 4px 4px rgba(120,70,0,.45))}
 .especial span{display:block;opacity:0;transform:scale(.6);animation:surge .9s forwards}
 .especial span+span{animation-delay:.6s}
 @keyframes surge{to{opacity:1;transform:none}}
@@ -84,7 +84,7 @@ html,body{
 
 /* ===== 3. ATELIÊ (cena) ===== */
 #c3{background:radial-gradient(ellipse 60% 40% at 80% 20%,#ffe9b0,transparent 70%),linear-gradient(#a8793f,#6b4423)}
-.cav{position:relative;width:78%;aspect-ratio:.78;margin-top:-6%}
+.cav{position:relative;width:78%;aspect-ratio:.78;margin-top:-10%}
 .tela{position:absolute;inset:0 0 10%;background:#fffaf0;border:8px solid #e8bf84;border-radius:6px;box-shadow:0 14px 28px rgba(0,0,0,.35);padding:7% 5%;text-align:center;font-weight:700;color:var(--marinho);font-size:min(8.4vw,40px);line-height:1.08;display:flex;flex-direction:column;justify-content:center}
 .tela .l{display:inline-block;opacity:0;transform:scale(.3)}
 #c3.on .tela .l{animation:surge .5s calc(var(--i)*70ms + .4s) forwards}
@@ -97,7 +97,7 @@ html,body{
 @keyframes pinta{0%{opacity:0;transform:translate(0,0) rotate(-20deg)}10%{opacity:1}50%{transform:translate(70%,40%) rotate(-5deg)}85%{opacity:1}100%{opacity:0;transform:translate(110%,10%) rotate(-20deg)}}
 .tintas{position:absolute;bottom:7%;display:flex;gap:4%;width:78%;justify-content:center}
 .tintas i{width:11%;aspect-ratio:1;border-radius:50% 50% 40% 40%;background:var(--c);border:3px solid #fff8;box-shadow:0 4px 0 rgba(0,0,0,.25)}
-.legenda{position:absolute;bottom:20%;left:8%;right:8%;text-align:center;color:#fff;font-family:var(--mao);font-weight:700;font-size:min(8vw,2.2rem);text-shadow:0 2px 6px rgba(0,0,0,.5);opacity:0}
+.legenda{position:absolute;bottom:8%;left:8%;right:8%;text-align:center;color:#fff;font-family:var(--mao);font-weight:700;font-size:min(7.5vw,2.1rem);text-shadow:0 2px 6px rgba(0,0,0,.6);opacity:0}
 #c3.on .legenda{animation:surge 1s 4.2s forwards}
 
 /* ===== 4. CARTÃO ===== */
@@ -116,8 +116,8 @@ html,body{
 .idade{font-size:clamp(1rem,5.8vw,2rem);font-weight:600;color:var(--tinta);background:#fff3a8;padding:.05em .6em;border-radius:6px;text-transform:uppercase}
 .data{font-size:clamp(1.8rem,9.5cqw,3.5rem);font-weight:700;color:var(--azul);line-height:1.1;text-transform:uppercase}
 .loc{font-family:var(--mao);font-size:clamp(1.6rem,8.9vw,2.85rem);font-weight:700;color:var(--tinta);margin-top:.5em}
-.btns{display:grid;gap:.5rem;width:min(92%,20rem);margin-top:.8rem}
-.btn{font:inherit;font-weight:600;font-size:clamp(.9rem,3.8vw,1.05rem);min-height:46px;padding:.6rem 1.2rem;border:0;border-radius:999px;background:var(--azul);color:#fff;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;user-select:none;}
+.btns{display:grid;gap:.45rem;width:min(92%,20rem);margin-top:.5rem}
+.btn{font:inherit;font-weight:600;font-size:clamp(.88rem,3.6vw,1.02rem);min-height:42px;padding:.5rem 1rem;border:0;border-radius:999px;background:var(--azul);color:#fff;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;user-select:none;}
 .btn.z{background:#178a47}.btn.c{background:#fff;color:var(--marinho);box-shadow:inset 0 0 0 2px #c9d3de}
 .pular{position:absolute;top:calc(10px + env(safe-area-inset-top));right:10px;z-index:20;background:rgba(0,0,0,.28);color:#fff;border:0;border-radius:999px;padding:.35rem .9rem;font:inherit;font-size:.9rem;cursor:pointer}
 
@@ -127,35 +127,35 @@ html,body{
 
 /* ===== SUGESTÃO DE PRESENTE ===== */
 .presente{
-  display:flex;align-items:flex-start;gap:.5rem;
+  display:flex;align-items:center;gap:.6rem;
   background:#fff8e0;border:2px dashed #e0a923;border-radius:12px;
-  padding:.5rem .75rem;margin-top:.65rem;
+  padding:.45rem .75rem;margin-top:.45rem;
   color:var(--marinho);text-align:left;
   width:min(92%,20rem);flex-shrink:0;
 }
 .presenteIcon{
-  font-size:1.5rem;line-height:1;flex-shrink:0;margin-top:.08em;
+  font-size:1.4rem;line-height:1;flex-shrink:0;
 }
 .presenteTexto{
-  display:flex;flex-direction:column;line-height:1.25;
-  font-size:clamp(.72rem,3vw,.88rem);
+  display:flex;flex-direction:column;line-height:1.2;
+  font-size:clamp(.72rem,3vw,.85rem);
 }
 .presenteTexto strong{
-  font-size:1.02em;color:var(--tinta);
-  text-transform:uppercase;letter-spacing:.02em;margin-bottom:.12em;
+  font-size:0.95em;color:var(--tinta);
+  text-transform:uppercase;letter-spacing:.02em;margin-bottom:.1em;
 }
-#sugestaoPresente{white-space:pre-line;font-weight:500;}
+#sugestaoPresente{white-space:pre-line;font-weight:600;}
 
 /* ===== RESPONSIVO ===== */
 @media(max-height:700px){
   .cartao{height:94%;padding-top:12%}
   .pg{top:27%;bottom:4%}
   .foto{width:min(40%,180px)}
-  .btns{gap:.35rem;margin-top:.55rem}
-  .btn{min-height:42px;padding:.45rem 1rem}
+  .btns{gap:.35rem;margin-top:.4rem}
+  .btn{min-height:38px;padding:.4rem .9rem}
   .nome{font-size:clamp(1.7rem,9vw,3.4rem)}
   .logo{-webkit-text-stroke:3px var(--marinho);text-shadow:0 3px 0 var(--marinho)}
-  .presente{padding:.35rem .6rem;margin-top:.4rem;}
+  .presente{padding:.35rem .6rem;margin-top:.3rem;}
   .presenteIcon{font-size:1.2rem;}
   .presenteTexto{font-size:clamp(.65rem,2.8vw,.78rem);}
 }
@@ -164,16 +164,7 @@ html,body{
   .pg{left:4%;right:4%}
   .az{font-size:clamp(1.4rem,8.3vw,2.1rem)}
   .lar{font-size:clamp(1.05rem,5.9vw,1.5rem)}
-  .btn{font-size:.88rem}
-}
-@media(orientation:landscape) and (max-height:520px){
-  #palco{width:min(100vw,calc(100dvh*16/9))}
-  .cartao{width:88%;height:94%;padding-top:8%}
-  .logo{font-size:clamp(20px,5vh,32px)}
-  .pg{top:24%;bottom:3%}
-  .foto{width:min(26%,150px)}
-  .btns{grid-template-columns:1fr 1fr;gap:.35rem;width:95%}
-  .btns #rever{grid-column:1/-1}
+  .btn{font-size:.85rem}
 }
 
 /* ===== ATELIÊ (overlay para mobile) ===== */
@@ -245,10 +236,8 @@ html,body{
 }
 .mensagemFinal.visivel { display: block; }
 
-/* ===== LINK DO MAPA ===== */
 .loc a{color:inherit;text-decoration:underline dotted;text-underline-offset:.15em}
 
-/* ===== MOVIMENTO REDUZIDO ===== */
 @media (prefers-reduced-motion: reduce){
   .nuvem,.sol svg,.env,.lacre,.dica,.brilho{animation:none!important}
 }
