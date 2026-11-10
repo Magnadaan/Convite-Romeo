@@ -6,7 +6,7 @@
 <title>Convite – O Maior Pintor do Mundo!</title>
 <meta name="theme-color" content="#4aa8f0">
 
-<!-- Prévia no WhatsApp (troque SEU-USUARIO e convite-romeo) -->
+<!-- Prévia no WhatsApp -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="🎨 O Maior Pintor do Mundo!">
 <meta property="og:description" content="Você é convidado para o aniversário de 1 aninho do Romeo! Toque para abrir.">
@@ -53,9 +53,6 @@
 </head>
 <body>
 
-<!-- O áudio é carregado e controlado via Web Audio API no script.js -->
-
-<!-- ===== BOTÃO MUTE ===== -->
 <button id="toggle-music" aria-label="Mutar som" title="Mutar som">
   <svg class="ico-on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -142,13 +139,17 @@
         <p class="lar" style="margin:0">Te esperamos</p>
         <p class="az" style="margin-top:.2em">para compartilhar a nossa alegria!</p>
 
-        <!-- Sugestão de presente -->
+        <!-- Nova Imagem de Encerramento (Redonda) -->
+        <div class="fotoFinalWrapper" id="fotoFinalWrapper">
+          <img id="fotoFinal" src="foto-final.jpg" alt="Foto de encerramento">
+        </div>
+
+        <!-- Sugestão de presente (Nova Estrutura com Ícones) -->
         <div class="presente">
-          <span class="presenteIcon" aria-hidden="true">🎁</span>
-          <span class="presenteTexto">
-            <strong>Sugestão de presente</strong>
-            <span id="sugestaoPresente"></span>
-          </span>
+          <strong class="presenteTitulo">Sugestão de presente</strong>
+          <div class="presenteLista" id="sugestaoPresente">
+            <!-- Os itens serão preenchidos pelo script.js -->
+          </div>
         </div>
 
         <div class="btns">
