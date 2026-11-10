@@ -10,7 +10,12 @@ const CONFIG = {
   whatsapp: "+5521973387903",
   selo: "Deus é o artista da minha história!",
   legenda: "Você é minha obra de arte mais preciosa!",
-  sugestaoPresente: "Roupas: 9m a 12m\nCalçados: 19 a 20"
+  // Novo formato: array com ícones e textos
+  sugestaoPresente: [
+    { icone: "👕", texto: "Roupas" },
+    { icone: "👟", texto: "Calçados" },
+    { icone: "🧸", texto: "Brinquedos" }
+  ]
 };
 /* ================================== */
 
@@ -19,28 +24,17 @@ const cores = ["#e5533d","#ffd23a","#4a86d4","#7cb342","#f2994a","#8a6fd1"];
 
 /* ===================================================================
    ÁUDIO via <audio> — funciona em file:// e http(s)://
-   Auto-adapta ao tamanho real do MP3:
-     • >= 70s      → toca o trecho 38s–70s (32s)
-     • 30s–70s     → toca o arquivo INTEIRO (o seu caso: 34s)
-     • < 30s       → repete em loop até completar 32s
-   Fade-out linear de 2s nos últimos 2s da timeline.
-   Fade-in linear de ~1.2s ao começar a música.
-   Timeline visual via performance.now() — NUNCA depende do áudio.
    =================================================================== */
-console.log('📦 script.js v8 carregado');
+console.log('📦 script.js carregado');
 
 let audioEl = null;
 let audioPronto = false;
 let audioDur = 0;
 
-/* Trecho do arquivo que será reproduzido */
 let cropStart = 38;
 let cropEnd = 70;
-
-/* Duração total da timeline (= duração do áudio, exceto no modo loop) */
 let totalDur = 32;
 
-/* Fade */
 const FADE_LEN = 2;
 let fadeStart = 30;
 let fadeEnd = 32;
@@ -87,32 +81,24 @@ function prepararAudio() {
       console.log('🎵 Duração do MP3: ' + audioDur.toFixed(2) + 's');
 
       if (audioDur >= MUSIC_CROP.end) {
-        // Música longa: usa o trecho 38s–70s
         cropStart = MUSIC_CROP.start;
         cropEnd = MUSIC_CROP.end;
         totalDur = MUSIC_CROP.duration;
         loopAudio = false;
-        console.log('   → Usando trecho ' + cropStart + 's–' + cropEnd + 's (' + totalDur + 's)');
       } else if (audioDur >= 30) {
-        // Música entre 30s e 70s: usa TUDO (caso 34s)
         cropStart = 0;
         cropEnd = audioDur;
         totalDur = audioDur;
         loopAudio = false;
-        console.log('   → Usando o arquivo INTEIRO (0s a ' + audioDur.toFixed(2) + 's)');
       } else {
-        // Muito curta: repete em loop
         cropStart = 0;
         cropEnd = audioDur;
         totalDur = MUSIC_CROP.duration;
         loopAudio = true;
-        console.log('   → MP3 muito curto. Repete em loop até ' + totalDur + 's');
       }
 
       fadeEnd = totalDur;
       fadeStart = Math.max(0, totalDur - FADE_LEN);
-      console.log('   → Fade-out: ' + fadeStart.toFixed(2) + 's → ' + fadeEnd.toFixed(2) + 's');
-
       audioPronto = true;
     });
 
@@ -126,9 +112,7 @@ function prepararAudio() {
 
     audioEl.addEventListener('error', () => {
       const code = audioEl.error ? audioEl.error.code : '?';
-      const nomes = { 1:'ABORTED', 2:'NETWORK', 3:'DECODE', 4:'SRC_NOT_SUPPORTED' };
-      console.error('⚠️ Erro no áudio (código ' + code + ' — ' + (nomes[code] || '?') + ')');
-      console.warn('   → Verifique se "musica-convite.mp3" está na mesma pasta do index.html');
+      console.error('⚠️ Erro no áudio (código ' + code + ')');
     });
 
     audioEl.load();
@@ -138,17 +122,10 @@ function prepararAudio() {
 }
 prepararAudio();
 
-if (location.protocol === 'file:') {
-  console.info('ℹ️ Rodando via file:// — áudio deve funcionar normalmente.');
-}
-
 function tocarMusica() {
-  if (!audioEl || !audioPronto) {
-    console.warn('⏸ Áudio ainda não pronto. A apresentação visual continua sem som.');
-    return;
-  }
+  if (!audioEl || !audioPronto) return;
   fadeMultiplier = 1;
-  fadeInMultiplier = 0;          // começa em silêncio
+  fadeInMultiplier = 0;
   aplicarVolume();
 
   try { audioEl.currentTime = cropStart; } catch (e) {}
@@ -156,17 +133,13 @@ function tocarMusica() {
 
   if (p && p.then) {
     p.then(() => {
-      console.log('▶ Áudio tocando de ' + cropStart.toFixed(2) + 's até ' + cropEnd.toFixed(2) + 's');
-
-      // Fade-in em ~1.2s (0.04 × 30 ticks)
       clearInterval(fadeInTimer);
       fadeInTimer = setInterval(() => {
         fadeInMultiplier = Math.min(1, fadeInMultiplier + 0.04);
         aplicarVolume();
         if (fadeInMultiplier >= 1) clearInterval(fadeInTimer);
       }, 40);
-    })
-    .catch(err => console.error('⚠️ play() falhou:', err.name, '-', err.message));
+    }).catch(err => console.error('⚠️ play() falhou:', err.name));
   }
 }
 
@@ -176,7 +149,6 @@ function iniciarTimeline() {
   fadeMultiplier = 1;
   aplicarVolume();
   isPlaying = true;
-  console.log('▶ Timeline iniciada (' + totalDur.toFixed(2) + 's)');
   loopSincronizacao();
 }
 
@@ -189,7 +161,6 @@ function loopSincronizacao() {
     timelineIndex++;
   }
 
-  // Fade-out linear nos últimos 2s
   if (t >= fadeStart) {
     const p = Math.min(1, (t - fadeStart) / (fadeEnd - fadeStart));
     fadeMultiplier = 1 - p;
@@ -201,7 +172,6 @@ function loopSincronizacao() {
 
   if (audioEl && !audioEl.paused && !loopAudio && audioEl.currentTime >= cropEnd) {
     audioEl.pause();
-    console.log('⏸ Áudio pausado (fim do trecho)');
   }
 
   const pct = Math.min(100, Math.round((t / totalDur) * 100));
@@ -215,7 +185,6 @@ function loopSincronizacao() {
     fadeMultiplier = 0;
     aplicarVolume();
     if (audioEl && !audioEl.paused) audioEl.pause();
-    console.log('✓ Timeline finalizada');
   }
 }
 
@@ -261,8 +230,15 @@ $("#data").textContent = CONFIG.data + (CONFIG.horario ? " às " + CONFIG.horari
   }
 })();
 
-if ($("#sugestaoPresente")) {
-  $("#sugestaoPresente").textContent = CONFIG.sugestaoPresente || "";
+// Renderiza os presentes com ícones
+const presentesContainer = $("#sugestaoPresente");
+if (presentesContainer && Array.isArray(CONFIG.sugestaoPresente)) {
+  presentesContainer.innerHTML = CONFIG.sugestaoPresente.map(item => `
+    <div class="presenteItem">
+      <span class="presenteIcone">${item.icone}</span>
+      <span class="presenteTexto">${item.texto}</span>
+    </div>
+  `).join('');
 }
 
 if (CONFIG.foto) {
@@ -271,6 +247,22 @@ if (CONFIG.foto) {
   i.src = CONFIG.foto; i.alt = "Foto de " + CONFIG.nome;
   i.onerror = () => { $("#foto").textContent = "🎨"; };
   $("#foto").appendChild(i);
+}
+
+// Lógica robusta para carregar a imagem final
+const fotoFinal = document.getElementById('fotoFinal');
+const fotoFinalWrapper = document.getElementById('fotoFinalWrapper');
+
+if (fotoFinal && fotoFinalWrapper) {
+  const mostrarImagem = () => { fotoFinalWrapper.style.display = 'block'; };
+  const esconderImagem = () => { fotoFinalWrapper.style.display = 'none'; };
+
+  if (fotoFinal.complete && fotoFinal.naturalWidth > 0) {
+    mostrarImagem();
+  } else {
+    fotoFinal.addEventListener('load', mostrarImagem);
+    fotoFinal.addEventListener('error', esconderImagem);
+  }
 }
 
 const msg = "🎨 *O Maior Pintor do Mundo!*\nVou comemorar o aniversário do " + CONFIG.nome + "! Confirmo minha presença.";
@@ -318,7 +310,6 @@ function abrir() {
 
   if (navigator.vibrate) navigator.vibrate(12);
 
-  // Desbloqueia o áudio dentro do gesto do usuário (exigido pelo iOS/Safari)
   if (audioEl) {
     audioEl.muted = true;
     const u = audioEl.play();
