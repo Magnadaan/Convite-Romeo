@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Convite – O Maior Pintor do Mundo!</title>
+<meta name="theme-color" content="#4aa8f0">
+
+<!-- Prévia no WhatsApp (troque SEU-USUARIO e convite-romeo) -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="🎨 O Maior Pintor do Mundo!">
+<meta property="og:description" content="Você é convidado para o aniversário de 1 aninho do Romeo! Toque para abrir.">
+<meta property="og:image" content="https://SEU-USUARIO.github.io/convite-romeo/foto-romeo.jpg">
+<meta property="og:url" content="https://SEU-USUARIO.github.io/convite-romeo/">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+/* ===== BOTÃO MUTE MINIMALISTA ===== */
+#toggle-music {
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  right: 16px;
+  z-index: 1000;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(23, 63, 122, 0.55);
+  color: #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  transition: transform .2s ease, background .2s ease, opacity .35s ease;
+  opacity: 0;
+  padding: 0;
+}
+#toggle-music.show { display: flex; opacity: 1; }
+#toggle-music:hover { background: rgba(23, 63, 122, 0.85); }
+#toggle-music:active { transform: scale(0.9); }
+#toggle-music svg { display: block; }
+#toggle-music .ico-off { display: none; }
+#toggle-music.muted .ico-on { display: none; }
+#toggle-music.muted .ico-off { display: block; }
+</style>
+</head>
+<body>
+
+<!-- O áudio é carregado e controlado via Web Audio API no script.js -->
+
+<!-- ===== BOTÃO MUTE ===== -->
+<button id="toggle-music" aria-label="Mutar som" title="Mutar som">
+  <svg class="ico-on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+  </svg>
+  <svg class="ico-off" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+    <line x1="23" y1="9" x2="17" y2="15"></line>
+    <line x1="17" y1="9" x2="23" y2="15"></line>
+  </svg>
+</button>
+
+<main id="palco">
+  <div class="sol" aria-hidden="true"><svg viewBox="0 0 100 100"><g stroke="#ffb400" stroke-width="7" stroke-linecap="round"><path d="M50 3v11M50 86v11M3 50h11M86 50h11M17 17l8 8M75 75l8 8M83 17l-8 8M25 75l-8 8"/></g><circle cx="50" cy="50" r="26" fill="#ffd23a"/><circle cx="41" cy="46" r="3" fill="#7a4a00"/><circle cx="59" cy="46" r="3" fill="#7a4a00"/><path d="M40 58q10 9 20 0" fill="none" stroke="#7a4a00" stroke-width="3" stroke-linecap="round"/></svg></div>
+  <svg class="arco" viewBox="0 0 170 90" aria-hidden="true" fill="none" stroke-width="11"><path d="M8 88a77 77 0 0 1 154 0" stroke="#e5533d"/><path d="M20 88a65 65 0 0 1 130 0" stroke="#f2994a"/><path d="M32 88a53 53 0 0 1 106 0" stroke="#ffd23a"/><path d="M44 88a41 41 0 0 1 82 0" stroke="#7cb342"/><path d="M56 88a29 29 0 0 1 58 0" stroke="#4a86d4"/></svg>
+  <div class="nuvem" style="top:22%;animation-delay:-6s"></div><div class="nuvem" style="top:58%;width:30%;animation-duration:36s;animation-delay:-20s"></div>
+  <div id="progresso" role="progressbar" aria-label="Progresso do convite" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+  <button class="pular" id="pular" hidden>Pular</button>
+
+  <!-- 1 -->
+  <section class="cena on" id="c1">
+    <button class="env" id="env" aria-label="Abrir o convite">
+      <div class="folha" id="selo"></div>
+      <div class="rolo rolo-t">
+        <div class="ponteira esq">
+          <svg viewBox="0 0 40 70" fill="none">
+            <rect x="2" y="10" width="36" height="50" rx="18" fill="#d99f36" stroke="#5a3f24" stroke-width="4"/>
+            <rect x="10" y="16" width="20" height="38" rx="10" fill="#fce5b1" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="ponteira dir">
+          <svg viewBox="0 0 40 70" fill="none">
+            <rect x="2" y="10" width="36" height="50" rx="18" fill="#d99f36" stroke="#5a3f24" stroke-width="4"/>
+            <rect x="10" y="16" width="20" height="38" rx="10" fill="#fce5b1" opacity="0.6"/>
+          </svg>
+        </div>
+      </div>
+      <div class="rolo rolo-b">
+        <div class="ponteira esq">
+          <svg viewBox="0 0 40 70" fill="none">
+            <rect x="2" y="10" width="36" height="50" rx="18" fill="#d99f36" stroke="#5a3f24" stroke-width="4"/>
+            <rect x="10" y="16" width="20" height="38" rx="10" fill="#fce5b1" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="ponteira dir">
+          <svg viewBox="0 0 40 70" fill="none">
+            <rect x="2" y="10" width="36" height="50" rx="18" fill="#d99f36" stroke="#5a3f24" stroke-width="4"/>
+            <rect x="10" y="16" width="20" height="38" rx="10" fill="#fce5b1" opacity="0.6"/>
+          </svg>
+        </div>
+      </div>
+      <div class="lacre" aria-hidden="true"></div>
+    </button>
+    <p class="dica" id="dica">Toque no selo para abrir</p>
+  </section>
+
+  <!-- 2 -->
+  <section class="cena" id="c2" aria-live="polite">
+    <div class="especial"><span>Convite</span><span>Especial</span></div>
+    <i class="brilho" style="top:22%;left:14%"></i><i class="brilho" style="top:30%;right:12%;animation-delay:.5s"></i><i class="brilho" style="bottom:26%;left:22%;animation-delay:1s"></i><i class="brilho" style="bottom:20%;right:20%;animation-delay:.3s"></i>
+  </section>
+
+  <!-- 3 -->
+  <section class="cena" id="c3">
+    <div class="cav">
+      <i class="perna a"></i><i class="perna b"></i>
+      <div class="tela" id="tela"></div>
+      <svg class="pincel" viewBox="0 0 120 30" aria-hidden="true"><rect x="40" y="11" width="78" height="8" rx="4" fill="#9a6a3c"/><rect x="30" y="9" width="14" height="12" fill="#cfd4dc"/><path d="M30 9C18 9 10 13 4 15c6 3 14 6 26 6z" fill="#e5533d"/></svg>
+    </div>
+    <p class="legenda" id="legenda"></p>
+    <div class="tintas" aria-hidden="true"><i style="--c:#e5533d"></i><i style="--c:#ffd23a"></i><i style="--c:#4a86d4"></i><i style="--c:#7cb342"></i><i style="--c:#f2994a"></i></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="cena" id="c4">
+    <div class="cartao">
+      <div class="logo" id="logo" aria-label="O Maior Pintor do Mundo"></div>
+      <div class="pg" id="p0"><p class="az">está pintando a minha história…</p></div>
+      <div class="pg" id="p1"><p class="lar">E chegou a hora de celebrar essa grande obra de Deus!</p></div>
+      <div class="pg" id="p2"><div class="foto" id="foto"></div><p class="nome" id="nome"></p><p class="idade" id="idade"></p></div>
+      <div class="pg" id="p3"><p class="az">Vamos celebrar!</p><p class="data" id="data"></p><p class="loc" id="loc"></p></div>
+      <div class="pg" id="p4">
+        <p class="lar" style="margin:0">Te esperamos</p>
+        <p class="az" style="margin-top:.2em">para compartilhar a nossa alegria!</p>
+
+        <!-- Sugestão de presente -->
+        <div class="presente">
+          <span class="presenteIcon" aria-hidden="true">🎁</span>
+          <span class="presenteTexto">
+            <strong>Sugestão de presente</strong>
+            <span id="sugestaoPresente"></span>
+          </span>
+        </div>
+
+        <div class="btns">
+          <a class="btn z" id="zap" href="#">Confirmar presença</a>
+          <button class="btn c" id="atelie">Pintar um quadro</button>
+          <button class="btn c" id="rever">Rever convite</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== ATELIÊ OVERLAY ===== -->
+<div id="atelieOverlay" aria-hidden="true">
+  <div class="atelieContainer">
+    <div class="atelieHeader">
+      <h2>Meu Pequeno Ateliê</h2>
+      <button class="atelieFechar" id="fecharAtelie">Voltar ao convite</button>
+    </div>
+    <div class="canvasWrapper">
+      <canvas id="paintCanvas" width="800" height="800"></canvas>
+      <canvas id="lineCanvas" width="800" height="800"></canvas>
+    </div>
+    <div class="toolbar">
+      <div id="paleta" class="toolbar" style="gap:4px;"></div>
+      <input type="range" id="brushSize" min="2" max="40" value="8" title="Tamanho do pincel">
+      <button class="toolBtn active" id="toolBrush" data-tool="brush">🖌️ Pincel</button>
+      <button class="toolBtn" id="toolEraser" data-tool="eraser">🧽 Borracha</button>
+      <button class="toolBtn" id="toolBucket" data-tool="bucket">🪣 Balde</button>
+      <button class="acaoBtn" id="undoBtn">↩️ Desfazer</button>
+      <button class="acaoBtn" id="redoBtn">↪️ Refazer</button>
+      <button class="acaoBtn" id="clearBtn">🗑️ Limpar</button>
+      <button class="acaoBtn" id="saveBtn">💾 Salvar PNG</button>
+      <button class="acaoBtn" id="finishBtn">✅ Concluir</button>
+    </div>
+    <div class="mensagemFinal" id="mensagemFinal">
+      Você também faz parte da linda obra que Deus está pintando na vida do Romeo! 🎨❤️
+    </div>
+  </div>
+</div>
+
+<script src="script.js" defer></script>
+<script src="atelier.js" defer></script>
+</body>
+</html>
