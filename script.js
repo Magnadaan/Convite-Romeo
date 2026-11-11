@@ -48,8 +48,7 @@ let fadeMultiplier = 1;
 let fadeInMultiplier = 1;
 let fadeInTimer = null;
 let startTimer = null;
-let manual = false;      // true quando a pessoa navega por toque/arrasto (desliga a troca automática)
-let ultimoGesto = 0;
+let manual = false;      // true quando a pessoa navega por toque (desliga a troca automática)
 
 const MUSIC_CROP = { start: 38, end: 70, duration: 32 };
 
@@ -368,7 +367,7 @@ function fim() {
   barra.style.width = "100%";
 }
 
-/* ===== NAVEGAÇÃO MANUAL: toque, arrastar (esquerda/direita) e setas do teclado =====
+/* ===== NAVEGAÇÃO MANUAL: toque nas laterais e setas do teclado =====
    Passos: 0 = Convite Especial, 1 = Ateliê, 2..6 = páginas do cartão (0..4) */
 const ULTIMO_PASSO = 6;
 
@@ -411,37 +410,34 @@ $("#rever").addEventListener("click", () => {
   barra.style.width = "0%";
 });
 
-/* Toque = avançar (ignora o "clique" que o navegador gera logo após um arrasto) */
-function cliqueAvancar(e) {
-  if (Date.now() - ultimoGesto < 450) return;
-  if (e.target.closest("a,button")) return;
-  navegar(1);
+/* Toque nas laterais da tela: lado esquerdo = voltar, restante = avançar.
+   As setas aparecem translúcidas por um instante para indicar a ação. */
+const ZONA_VOLTAR = 0.35;   // 35% da largura, à esquerda
+let tSetas = null;
+
+function mostrarSetas(lado) {
+  const e = $("#setaEsq"), d = $("#setaDir");
+  if (!e || !d) return;
+  e.classList.add("vis"); d.classList.add("vis");
+  e.classList.toggle("ativa", lado < 0);
+  d.classList.toggle("ativa", lado > 0);
+  clearTimeout(tSetas);
+  tSetas = setTimeout(() => {
+    e.classList.remove("vis", "ativa");
+    d.classList.remove("vis", "ativa");
+  }, 1300);
 }
-$("#c2").addEventListener("click", cliqueAvancar);
-$("#c3").addEventListener("click", cliqueAvancar);
-$("#c4").addEventListener("click", cliqueAvancar);
 
-/* Arrastar o dedo (ou o mouse): esquerda = avançar, direita = voltar */
-(function () {
-  const palco = $("#palco");
-  let x0 = null, y0 = null, t0 = 0;
-
-  palco.addEventListener("pointerdown", e => {
-    if (e.isPrimary === false) return;
-    x0 = e.clientX; y0 = e.clientY; t0 = Date.now();
-  });
-  palco.addEventListener("pointerup", e => {
-    if (x0 === null) return;
-    const dx = e.clientX - x0, dy = e.clientY - y0, dt = Date.now() - t0;
-    x0 = null;
-    if (cenaAtual === "c1") return;
-    if (Math.abs(dx) >= 45 && Math.abs(dx) > Math.abs(dy) * 1.4 && dt < 1000) {
-      ultimoGesto = Date.now();
-      navegar(dx < 0 ? 1 : -1);
-    }
-  });
-  palco.addEventListener("pointercancel", () => { x0 = null; });
-})();
+function cliqueNavegar(e) {
+  if (e.target.closest("a,button")) return;
+  const r = $("#palco").getBoundingClientRect();
+  const lado = (e.clientX - r.left) / r.width < ZONA_VOLTAR ? -1 : 1;
+  mostrarSetas(lado);
+  navegar(lado);
+}
+$("#c2").addEventListener("click", cliqueNavegar);
+$("#c3").addEventListener("click", cliqueNavegar);
+$("#c4").addEventListener("click", cliqueNavegar);
 
 /* Setas do teclado (computador) */
 document.addEventListener("keydown", e => {
