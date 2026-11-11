@@ -187,32 +187,73 @@
   </section>
 </main>
 
-<!-- ===== ATELIÊ OVERLAY ===== -->
-<div id="atelieOverlay" aria-hidden="true">
-  <div class="atelieContainer">
-    <div class="atelieHeader">
-      <h2>Meu Pequeno Ateliê</h2>
-      <button class="atelieFechar" id="fecharAtelie">Voltar ao convite</button>
+<!-- ===== ATELIÊ OVERLAY (tela única) ===== -->
+<div id="atelieOverlay" aria-hidden="true" role="dialog" aria-label="Meu Pequeno Ateliê">
+  <div class="atl">
+
+    <header class="atlTop">
+      <button class="atlBtn atlVoltar" id="fecharAtelie" type="button" aria-label="Voltar ao convite"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg><span>Convite</span></button>
+      <div class="atlAcoes">
+        <button class="atlBtn" id="undoBtn" type="button" aria-label="Desfazer" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+        <button class="atlBtn" id="redoBtn" type="button" aria-label="Refazer" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+        <button class="atlBtn" id="clearBtn" type="button" aria-label="Limpar"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+        <button class="atlBtn" id="galeriaBtn" type="button" aria-label="Escolher outro desenho" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
+        <button class="atlBtn" id="saveBtn" type="button" aria-label="Salvar imagem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+        <button class="atlBtn atlOk" id="finishBtn" type="button" aria-label="Concluir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></button>
+      </div>
+    </header>
+
+    <div class="atlStage" id="stage">
+      <div class="atlBoard" id="board">
+        <canvas id="paintCanvas" width="800" height="800"></canvas>
+        <canvas id="lineCanvas" width="800" height="800"></canvas>
+      </div>
     </div>
-    <div class="canvasWrapper">
-      <canvas id="paintCanvas" width="800" height="800"></canvas>
-      <canvas id="lineCanvas" width="800" height="800"></canvas>
+
+    <div class="atlSize" id="atlSize">
+      <i class="atlDot" style="width:6px;height:6px"></i>
+      <input type="range" id="brushSize" min="2" max="40" value="8" aria-label="Tamanho do pincel">
+      <i class="atlDot" style="width:16px;height:16px"></i>
+      <div class="atlZoomBtns">
+        <button class="atlMini" id="zoomOut" type="button" aria-label="Diminuir zoom"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        <button class="atlMini" id="zoomIn" type="button" aria-label="Aumentar zoom"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        <button class="atlMini" id="moverBtn" type="button" aria-label="Mover o desenho com um dedo"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg></button>
+        <button class="atlMini" id="zoomReset" type="button" aria-label="Ajustar à tela"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
+      </div>
     </div>
-    <div class="toolbar">
-      <div id="paleta" class="toolbar" style="gap:4px;"></div>
-      <input type="range" id="brushSize" min="2" max="40" value="8" title="Tamanho do pincel">
-      <button class="toolBtn active" id="toolBrush" data-tool="brush">🖌️ Pincel</button>
-      <button class="toolBtn" id="toolEraser" data-tool="eraser">🧽 Borracha</button>
-      <button class="toolBtn" id="toolBucket" data-tool="bucket">🪣 Balde</button>
-      <button class="acaoBtn" id="undoBtn">↩️ Desfazer</button>
-      <button class="acaoBtn" id="redoBtn">↪️ Refazer</button>
-      <button class="acaoBtn" id="clearBtn">🗑️ Limpar</button>
-      <button class="acaoBtn" id="saveBtn">💾 Salvar PNG</button>
-      <button class="acaoBtn" id="finishBtn">✅ Concluir</button>
+
+    <div class="atlCores">
+      <span class="atlAtual" id="corAtual" aria-hidden="true"></span>
+      <div class="atlPaleta" id="paleta"></div>
     </div>
-    <div class="mensagemFinal" id="mensagemFinal">
-      Você também faz parte da linda obra que Deus está pintando na vida do Romeo! 🎨❤️
+
+    <nav class="atlTools" aria-label="Ferramentas">
+      <button class="atlTool ativa" type="button" data-tool="brush"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Pincel</span></button>
+      <button class="atlTool" type="button" data-tool="bucket"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"/></svg><span>Balde</span></button>
+      <button class="atlTool" type="button" data-tool="eraser"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg><span>Borracha</span></button>
+      <button class="atlTool" type="button" data-tool="picker"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"/></svg><span>Pegar cor</span></button>
+      <label class="atlTool atlMais"><i class="atlRainbow"></i><span>Mais cores</span><input type="color" id="corCustom" value="#e5533d" aria-label="Escolher outra cor"></label>
+    </nav>
+
+    <!-- Galeria de desenhos -->
+    <div class="atlModal" id="galeria">
+      <div class="atlCard">
+        <h2>Escolha um desenho</h2>
+        <div class="atlGaleria" id="galeriaLista"></div>
+        <button class="atlBotao" id="galeriaFechar" type="button">Fechar</button>
+      </div>
     </div>
+
+    <!-- Mensagem final -->
+    <div class="atlModal" id="mensagemFinal">
+      <div class="atlCard">
+        <p class="atlMsg">Você também faz parte da linda obra que Deus está pintando na vida do Romeo! 🎨❤️</p>
+        <button class="atlBotao" id="finalSalvar" type="button">Salvar minha obra</button>
+        <button class="atlBotao sec" id="finalContinuar" type="button">Continuar pintando</button>
+        <button class="atlBotao sec" id="finalConvite" type="button">Voltar ao convite</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
