@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Convite – O Maior Pintor do Mundo!</title>
 <meta name="theme-color" content="#4aa8f0">
+<!-- Evita que o iPhone transforme data/hora em link azul -->
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+<!-- Altura real da tela (corrige barras do Safari iPhone e Samsung Browser) -->
+<script>
+(function(){
+  var r=document.documentElement,t;
+  function h(){ r.style.setProperty('--h',(window.innerHeight||document.documentElement.clientHeight)+'px'); }
+  h();
+  window.addEventListener('resize',h);
+  window.addEventListener('orientationchange',function(){clearTimeout(t);t=setTimeout(h,250);});
+  if(window.visualViewport) window.visualViewport.addEventListener('resize',h);
+})();
+</script>
 
 <!-- Prévia no WhatsApp -->
 <meta property="og:type" content="website">
@@ -157,6 +170,9 @@
           <button class="btn c" id="atelie">Pintar um quadro</button>
           <button class="btn c" id="rever">Rever convite</button>
         </div>
+
+        <!-- Endereço no rodapé (preenchido pelo script.js) -->
+        <p class="rodapeEnd" id="rodapeEnd"></p>
       </div>
     </div>
   </section>
