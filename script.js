@@ -8,6 +8,8 @@ const CONFIG = {
   foto: "foto-romeo.jpg",
   mapa: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Cherry House, Rua Oiapoque 93"),
   whatsapp: "+5521973387903",
+  // Link do Google Forms para confirmar presença. Se ficar vazio ("") o botão usa o WhatsApp acima.
+  confirmacao: "",
   selo: "Deus é o artista da minha história!",
   // Novo formato: array com ícones e textos
   sugestaoPresente: [
@@ -281,10 +283,20 @@ if (fotoFinal && fotoFinalWrapper) {
   }
 }
 
-const msg = "🎨 *O Maior Pintor do Mundo!*\nVou comemorar o aniversário do " + CONFIG.nome + "! Confirmo minha presença.";
-$("#zap").href = CONFIG.whatsapp
-  ? "https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(msg)
-  : "https://wa.me/?text=" + encodeURIComponent(msg);
+// Botão "Confirmar presença": Google Forms (se houver link) ou WhatsApp como alternativa
+(function () {
+  const zap = $("#zap");
+  if (CONFIG.confirmacao) {
+    zap.href = CONFIG.confirmacao;
+    zap.target = "_blank";
+    zap.rel = "noopener";
+  } else {
+    const msg = "🎨 *O Maior Pintor do Mundo!*\nVou comemorar o aniversário do " + CONFIG.nome + "! Confirmo minha presença.";
+    zap.href = CONFIG.whatsapp
+      ? "https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(msg)
+      : "https://wa.me/?text=" + encodeURIComponent(msg);
+  }
+})();
 
 function letras(t, off) {
   return [...t].map((c, i) =>
