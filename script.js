@@ -230,6 +230,20 @@ $("#data").textContent = CONFIG.data + (CONFIG.horario ? " às " + CONFIG.horari
   }
 })();
 
+// Endereço no rodapé da página final
+(function () {
+  const r = $("#rodapeEnd");
+  if (!r) return;
+  if (CONFIG.mapa) {
+    const a = document.createElement("a");
+    a.href = CONFIG.mapa; a.target = "_blank"; a.rel = "noopener";
+    a.textContent = "📍 " + CONFIG.local;
+    r.appendChild(a);
+  } else {
+    r.textContent = "📍 " + CONFIG.local;
+  }
+})();
+
 // Renderiza os presentes com ícones
 const presentesContainer = $("#sugestaoPresente");
 if (presentesContainer && Array.isArray(CONFIG.sugestaoPresente)) {
@@ -320,7 +334,7 @@ function abrir() {
   }
 
   e.classList.add("abre");
-  $("#dica").style.display = "none";
+  $("#dica").style.visibility = "hidden";
 
   for (let i = 0; i < 22; i++) {
     const g = document.createElement("i");
@@ -361,7 +375,7 @@ $("#rever").addEventListener("click", () => {
   pararMusica();
   paginaAtual = -1;
   $("#env").classList.remove("abre");
-  $("#dica").style.display = "";
+  $("#dica").style.visibility = "";
   document.querySelectorAll("#c1 .gota").forEach(g => g.remove());
   pg(-1);
   cena("c1");
