@@ -9,7 +9,6 @@ const CONFIG = {
   mapa: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Cherry House, Rua Oiapoque 93"),
   whatsapp: "+5521973387903",
   selo: "Deus é o artista da minha história!",
-  legenda: "Você é minha obra de arte mais preciosa!",
   // Novo formato: array com ícones e textos
   sugestaoPresente: [
     { icone: "👕", texto: "Roupas" },
@@ -49,6 +48,8 @@ let fadeMultiplier = 1;
 let fadeInMultiplier = 1;
 let fadeInTimer = null;
 let startTimer = null;
+let manual = false;      // true quando a pessoa navega por toque/arrasto (desliga a troca automática)
+let ultimoGesto = 0;
 
 const MUSIC_CROP = { start: 38, end: 70, duration: 32 };
 
@@ -144,6 +145,7 @@ function tocarMusica() {
 }
 
 function iniciarTimeline() {
+  manual = false;
   timelineStart = performance.now();
   timelineIndex = 0;
   fadeMultiplier = 1;
@@ -156,7 +158,7 @@ function loopSincronizacao() {
   if (!isPlaying) return;
   const t = (performance.now() - timelineStart) / 1000;
 
-  while (timelineIndex < TIMELINE.length && t >= TIMELINE[timelineIndex].t) {
+  while (!manual && timelineIndex < TIMELINE.length && t >= TIMELINE[timelineIndex].t) {
     TIMELINE[timelineIndex].fn();
     timelineIndex++;
   }
@@ -174,9 +176,11 @@ function loopSincronizacao() {
     audioEl.pause();
   }
 
-  const pct = Math.min(100, Math.round((t / totalDur) * 100));
-  barra.style.width = pct + "%";
-  progresso.setAttribute("aria-valuenow", String(pct));
+  if (!manual) {
+    const pct = Math.min(100, Math.round((t / totalDur) * 100));
+    barra.style.width = pct + "%";
+    progresso.setAttribute("aria-valuenow", String(pct));
+  }
 
   if (t < totalDur) {
     syncAnimFrame = requestAnimationFrame(loopSincronizacao);
@@ -214,7 +218,6 @@ if (btnMute) {
 
 /* ===== INTERFACE E DADOS ===== */
 $("#selo").textContent = CONFIG.selo;
-$("#legenda").textContent = CONFIG.legenda;
 $("#nome").textContent = CONFIG.nome;
 $("#idade").textContent = CONFIG.idade;
 $("#data").textContent = CONFIG.data + (CONFIG.horario ? " às " + CONFIG.horario : "");
@@ -365,16 +368,40 @@ function fim() {
   barra.style.width = "100%";
 }
 
-function avancar() {
-  if (cenaAtual === "c2") { cena("c3"); return; }
-  if (cenaAtual === "c3") { cena("c4"); pg(0); return; }
-  if (cenaAtual === "c4" && paginaAtual < 4) { pg(paginaAtual + 1); }
+/* ===== NAVEGAÇÃO MANUAL: toque, arrastar (esquerda/direita) e setas do teclado =====
+   Passos: 0 = Convite Especial, 1 = Ateliê, 2..6 = páginas do cartão (0..4) */
+const ULTIMO_PASSO = 6;
+
+function passoAtual() {
+  if (cenaAtual === "c2") return 0;
+  if (cenaAtual === "c3") return 1;
+  if (cenaAtual === "c4") return 2 + Math.max(0, paginaAtual);
+  return -1;
+}
+
+function irPasso(i) {
+  if (i === 0) cena("c2");
+  else if (i === 1) cena("c3");
+  else { cena("c4"); pg(i - 2); }
+  const pct = Math.round((i / ULTIMO_PASSO) * 100);
+  barra.style.width = pct + "%";
+  progresso.setAttribute("aria-valuenow", String(pct));
+}
+
+function navegar(delta) {
+  if (cenaAtual === "c1") return;
+  const atual = passoAtual();
+  const alvo = Math.max(0, Math.min(ULTIMO_PASSO, atual + delta));
+  if (alvo === atual) return;
+  manual = true;          // a partir daqui a pessoa controla o ritmo
+  irPasso(alvo);
 }
 
 $("#env").addEventListener("click", abrir);
 $("#pular").addEventListener("click", fim);
 $("#rever").addEventListener("click", () => {
   pararMusica();
+  manual = false;
   paginaAtual = -1;
   $("#env").classList.remove("abre");
   $("#dica").style.visibility = "";
@@ -384,9 +411,42 @@ $("#rever").addEventListener("click", () => {
   barra.style.width = "0%";
 });
 
-$("#c2").addEventListener("click", avancar);
-$("#c3").addEventListener("click", avancar);
-$("#c4").addEventListener("click", e => {
+/* Toque = avançar (ignora o "clique" que o navegador gera logo após um arrasto) */
+function cliqueAvancar(e) {
+  if (Date.now() - ultimoGesto < 450) return;
   if (e.target.closest("a,button")) return;
-  avancar();
+  navegar(1);
+}
+$("#c2").addEventListener("click", cliqueAvancar);
+$("#c3").addEventListener("click", cliqueAvancar);
+$("#c4").addEventListener("click", cliqueAvancar);
+
+/* Arrastar o dedo (ou o mouse): esquerda = avançar, direita = voltar */
+(function () {
+  const palco = $("#palco");
+  let x0 = null, y0 = null, t0 = 0;
+
+  palco.addEventListener("pointerdown", e => {
+    if (e.isPrimary === false) return;
+    x0 = e.clientX; y0 = e.clientY; t0 = Date.now();
+  });
+  palco.addEventListener("pointerup", e => {
+    if (x0 === null) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0, dt = Date.now() - t0;
+    x0 = null;
+    if (cenaAtual === "c1") return;
+    if (Math.abs(dx) >= 45 && Math.abs(dx) > Math.abs(dy) * 1.4 && dt < 1000) {
+      ultimoGesto = Date.now();
+      navegar(dx < 0 ? 1 : -1);
+    }
+  });
+  palco.addEventListener("pointercancel", () => { x0 = null; });
+})();
+
+/* Setas do teclado (computador) */
+document.addEventListener("keydown", e => {
+  const ov = document.getElementById("atelieOverlay");
+  if (ov && ov.classList.contains("aberto")) return;
+  if (e.key === "ArrowRight") navegar(1);
+  else if (e.key === "ArrowLeft") navegar(-1);
 });
