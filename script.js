@@ -316,6 +316,8 @@ function cena(id) {
 function pg(n) {
   paginaAtual = n;
   pgs.forEach((p, i) => p.classList.toggle("on", i === n));
+  const cartao = document.querySelector(".cartao");
+  if (cartao) cartao.classList.toggle("final", n === 4);
 }
 
 function abrir() {
