@@ -42,6 +42,7 @@ button,a.btn{-webkit-appearance:none;appearance:none}
   overflow:hidden;
   background:linear-gradient(#3f9fef,#c4e7fb 70%,#e9f6df);
   isolation:isolate;
+  touch-action:pan-y;-webkit-user-select:none;user-select:none;
 }
 :focus-visible{outline:3px solid #fff;outline-offset:3px}
 
@@ -135,12 +136,12 @@ button,a.btn{-webkit-appearance:none;appearance:none}
 @keyframes pisca{0%,100%{opacity:0;transform:scale(.3)}50%{opacity:1;transform:scale(1.4)}}
 
 /* ===== 3. ATELIÊ ===== */
-/* Tela, legenda e tintas agora ficam em coluna (flex): nunca se sobrepõem
+/* Tela e tintas agora ficam em coluna (flex): nunca se sobrepõem
    e o conjunto todo fica centralizado verticalmente. */
 #c3{
   background:radial-gradient(ellipse 60% 40% at 80% 20%,#ffe9b0,transparent 70%),linear-gradient(#a8793f,#6b4423);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.9rem;
-  --cw:min(78vw,460px,calc((var(--h) - 250px)*.78));
+  --cw:min(78vw,460px,calc((var(--h) - 190px)*.78));
 }
 .cav{position:relative;flex:none;width:var(--cw);aspect-ratio:.78}
 .tela{position:absolute;inset:0 0 10%;background:#fffaf0;border:8px solid #e8bf84;border-radius:6px;box-shadow:0 14px 28px rgba(0,0,0,.35);padding:7% 5%;text-align:center;font-weight:700;color:var(--marinho);font-size:min(calc(var(--cw)*.108),40px);line-height:1.08;display:flex;flex-direction:column;justify-content:center}
@@ -154,12 +155,6 @@ button,a.btn{-webkit-appearance:none;appearance:none}
 #c3.on .pincel{animation:pinta 5.6s .4s ease-in-out forwards}
 @keyframes pinta{0%{opacity:0;transform:translate(0,0) rotate(-20deg)}10%{opacity:1}50%{transform:translate(70%,40%) rotate(-5deg)}85%{opacity:1}100%{opacity:0;transform:translate(110%,10%) rotate(-20deg)}}
 
-.legenda{
-  flex:none;width:min(88vw,520px);text-align:center;color:#fff;font-family:var(--mao);font-weight:700;
-  font-size:min(8vw,2.2rem);line-height:1.1;text-wrap:balance;
-  text-shadow:0 2px 6px rgba(0,0,0,.5);opacity:0
-}
-#c3.on .legenda{animation:surge 1s 4.2s forwards}
 .tintas{flex:none;display:flex;gap:4%;width:var(--cw);justify-content:center}
 .tintas i{width:11%;aspect-ratio:1;border-radius:50% 50% 40% 40%;background:var(--c);border:3px solid #fff8;box-shadow:0 4px 0 rgba(0,0,0,.25)}
 
@@ -294,7 +289,7 @@ button,a.btn{-webkit-appearance:none;appearance:none}
   .btns{grid-template-columns:1fr 1fr;gap:.35rem;width:95%}
   .btns #rever{grid-column:1/-1}
   .env{width:min(86%,calc((var(--h) - 120px)*.75),440px)}
-  #c3{--cw:min(78vw,460px,calc((var(--h) - 190px)*.78))}
+  #c3{--cw:min(78vw,460px,calc((var(--h) - 130px)*.78))}
 }
 
 /* ===== PÁGINA FINAL COMPACTA (classe .final ativada pelo script.js) =====
