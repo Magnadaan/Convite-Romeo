@@ -1,229 +1,241 @@
-/* ===== ATELIÊ – PINTURA (OTIMIZADO PARA SMARTPHONES) ===== */
+/* ===== ATELIÊ – tela única, zoom por pinça e vários desenhos ===== */
 (function () {
-  const overlay = document.getElementById('atelieOverlay');
-  const paintCanvas = document.getElementById('paintCanvas');
-  const lineCanvas = document.getElementById('lineCanvas');
-  const ctxPaint = paintCanvas.getContext('2d');
-  const ctxLine = lineCanvas.getContext('2d');
-  const brushSizeInput = document.getElementById('brushSize');
-  const paletaDiv = document.getElementById('paleta');
-  const mensagemFinal = document.getElementById('mensagemFinal');
+  'use strict';
 
-  let currentTool = 'brush';
-  let currentColor = '#e5533d';
-  let brushSize = 8;
-  let drawing = false;
-  let lastX = 0, lastY = 0;
-  let undoStack = [];
-  let redoStack = [];
-  const maxUndo = 10;
-
-  let maskData = null;
-  let atelieIniciado = false;
-  let ateliePronto = false;
-
-  const STORAGE_KEY = 'atelie_desenho_obra_v6';
-
-  const atelierCores = [
-    '#e5533d', '#ffd23a', '#4a86d4', '#7cb342', '#f2994a', '#8a6fd1',
-    '#ff8c42', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7',
-    '#dfe6e9', '#636e72', '#2d3436', '#fd79a8'
+  /* ---------- LISTA DE DESENHOS PARA COLORIR ----------
+     Para adicionar mais: suba a imagem (fundo branco, contorno preto) no GitHub
+     e inclua uma linha nova aqui, por exemplo:
+       , { arquivo: 'desenho-2.png', nome: 'Arca de Noé' }                      */
+  const DESENHOS = [
+    { arquivo: 'desenho-colorir.png', nome: 'Jesus pintando o mundo' }
   ];
 
+  const CORES = [
+    '#e5533d', '#f2994a', '#ffd23a', '#a5d64c', '#3f9b4b', '#4ecdc4', '#45b7d1', '#2f6fd0',
+    '#8a6fd1', '#fd79a8', '#f5c6a5', '#c68642', '#8d5524', '#8e9aa0', '#2d3436', '#ffffff'
+  ];
+
+  const MAX_LADO = 800;
+  const MAX_UNDO = 10;
+  const ZOOM_MAX = 8;
+  const LEGADO = 'atelie_desenho_obra_v6';
+  const KEY_ULTIMO = 'atelie_ultimo_desenho';
+  const chave = i => 'atelie_obra_v7_' + i;
+
+  const $ = id => document.getElementById(id);
+  const overlay = $('atelieOverlay');
+  const stage = $('stage');
+  const board = $('board');
+  const paintCanvas = $('paintCanvas');
+  const lineCanvas = $('lineCanvas');
+  const ctxPaint = paintCanvas.getContext('2d', { willReadFrequently: true });
+  const ctxLine = lineCanvas.getContext('2d', { willReadFrequently: true });
+  const brushSizeInput = $('brushSize');
+
+  /* ---------- estado ---------- */
+  let ferramenta = 'brush';
+  let ferrAnterior = 'brush';
+  let corAtual = CORES[0];
+  let brushSize = 8;
+  let modoMover = false;
+
+  let idxAtual = 0;
+  let maskData = null;
+  let ateliePronto = false;
+  let atelieIniciado = false;
+
+  let undoStack = [];
+  let redoStack = [];
+
+  // vista (zoom e deslocamento)
+  const view = { s: 1, tx: 0, ty: 0 };
+  let sw = 0, sh = 0, bw = 0, bh = 0;
+
+  // ponteiros
+  const ptrs = new Map();
+  let gesto = null;
+  let tap = null;
+  let ignorar = false;
+  let drawing = false, drawId = null, strokeT0 = 0;
+  let lastX = 0, lastY = 0;
+  let panLast = null;
+
+  /* ---------- avisos ---------- */
+  let toastT = null;
   function showToast(msg, cor) {
-    const existing = document.getElementById('atelieToast');
-    if (existing) existing.remove();
-
-    const toast = document.createElement('div');
-    toast.id = 'atelieToast';
-    toast.textContent = msg;
-    toast.style.cssText = [
-      'position:fixed',
-      'bottom:22px',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'background:' + (cor || '#b4531c'),
-      'color:#fff',
-      'padding:10px 20px',
-      'border-radius:999px',
-      'font-family:var(--mao, cursive)',
-      'font-size:1.1rem',
-      'z-index:2000',
-      'box-shadow:0 6px 18px rgba(0,0,0,.35)',
-      'max-width:90vw',
-      'text-align:center',
-      'pointer-events:none',
-      'transition:opacity .3s'
-    ].join(';');
-
-    document.body.appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '0'; }, 3500);
-    setTimeout(() => toast.remove(), 3900);
+    let t = $('atlToast');
+    if (!t) { t = document.createElement('div'); t.id = 'atlToast'; overlay.appendChild(t); }
+    t.textContent = msg;
+    t.style.background = cor || '';
+    t.classList.add('vis');
+    clearTimeout(toastT);
+    toastT = setTimeout(() => t.classList.remove('vis'), 2600);
   }
 
-  function carregarDesenhoBase(onReady) {
-    maskData = null;
+  /* ---------- armazenamento ---------- */
+  function lerSalvo(i) {
+    try {
+      return localStorage.getItem(chave(i)) || (i === 0 ? localStorage.getItem(LEGADO) : null);
+    } catch (_) { return null; }
+  }
+
+  let persistTimer = null;
+  function persistirAgora() {
+    clearTimeout(persistTimer);
+    if (!ateliePronto) return;
+    try { localStorage.setItem(chave(idxAtual), paintCanvas.toDataURL()); } catch (_) {}
+  }
+  function persistir() {
+    clearTimeout(persistTimer);
+    persistTimer = setTimeout(persistirAgora, 500);
+  }
+
+  /* ---------- vista: ajuste, zoom e deslocamento ---------- */
+  function aplicarView() {
+    const W = bw * view.s, H = bh * view.s;
+    view.tx = W <= sw ? (sw - W) / 2 : Math.min(0, Math.max(sw - W, view.tx));
+    view.ty = H <= sh ? (sh - H) / 2 : Math.min(0, Math.max(sh - H, view.ty));
+    board.style.transform = 'translate(' + view.tx + 'px,' + view.ty + 'px) scale(' + view.s + ')';
+  }
+
+  function ajustarBoard(resetar) {
+    sw = stage.clientWidth; sh = stage.clientHeight;
+    if (!sw || !sh || !paintCanvas.width) return;
+    const f = Math.min((sw - 16) / paintCanvas.width, (sh - 16) / paintCanvas.height);
+    bw = paintCanvas.width * f;
+    bh = paintCanvas.height * f;
+    board.style.width = bw + 'px';
+    board.style.height = bh + 'px';
+    if (resetar) view.s = 1;
+    if (view.s === 1) { view.tx = (sw - bw) / 2; view.ty = (sh - bh) / 2; }
+    aplicarView();
+  }
+
+  function zoomEm(fator, cx, cy) {
+    const ns = Math.min(ZOOM_MAX, Math.max(1, view.s * fator));
+    if (ns === view.s) return;
+    const r = ns / view.s;
+    view.tx = cx - (cx - view.tx) * r;
+    view.ty = cy - (cy - view.ty) * r;
+    view.s = ns;
+    aplicarView();
+  }
+
+  /* ---------- carregar desenho ---------- */
+  function carregarDesenho(idx) {
+    persistirAgora();
+    idxAtual = idx;
     ateliePronto = false;
+    maskData = null;
+    undoStack = []; redoStack = [];
+    updateHist();
+    try { localStorage.setItem(KEY_ULTIMO, String(idx)); } catch (_) {}
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.src = 'desenho-colorir.png';
-
     img.onload = () => {
-      const maxLado = 800;
-      const escala = Math.min(
-        1,
-        maxLado / Math.max(img.naturalWidth, img.naturalHeight)
-      );
-
+      const escala = Math.min(1, MAX_LADO / Math.max(img.naturalWidth, img.naturalHeight));
       const w = Math.round(img.naturalWidth * escala);
       const h = Math.round(img.naturalHeight * escala);
-
-      paintCanvas.width = w;
-      paintCanvas.height = h;
-      lineCanvas.width = w;
-      lineCanvas.height = h;
-
-      const wrapper = document.querySelector('.canvasWrapper');
-      if (wrapper) {
-        wrapper.style.aspectRatio = w + ' / ' + h;
-      }
+      paintCanvas.width = w; paintCanvas.height = h;
+      lineCanvas.width = w; lineCanvas.height = h;
 
       ctxLine.clearRect(0, 0, w, h);
       ctxLine.drawImage(img, 0, 0, w, h);
 
-      let imgData;
+      let imgData = null;
       try {
         imgData = ctxLine.getImageData(0, 0, w, h);
       } catch (e) {
         console.error('CORS ou erro de leitura do canvas.', e);
-        showToast('⚠️ Abra o projeto via servidor local para o balde funcionar.', '#c0392b');
-        if (onReady) onReady();
-        return;
+        showToast('⚠️ Abra o projeto via servidor para o balde funcionar.', '#c0392b');
       }
 
-      const data = imgData.data;
-      maskData = new Uint8Array(w * h);
-
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const a = data[i + 3];
-        const pixIndex = i / 4;
-
-        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-
-        if (lum >= 210 || a < 25) {
-          data[i + 3] = 0;
-          maskData[pixIndex] = 0;
-        } else if (lum < 128) {
-          data[i] = 0; data[i + 1] = 0; data[i + 2] = 0; data[i + 3] = 255;
-          maskData[pixIndex] = 1;
-        } else {
-          const alpha = Math.min(200, Math.round(((210 - lum) / 82) * 255));
-          data[i] = 0; data[i + 1] = 0; data[i + 2] = 0; data[i + 3] = alpha;
-          maskData[pixIndex] = lum < 170 ? 1 : 0;
+      if (imgData) {
+        const data = imgData.data;
+        maskData = new Uint8Array(w * h);
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+          const pix = i / 4;
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          if (lum >= 210 || a < 25) {
+            data[i + 3] = 0;
+            maskData[pix] = 0;
+          } else if (lum < 128) {
+            data[i] = 0; data[i + 1] = 0; data[i + 2] = 0; data[i + 3] = 255;
+            maskData[pix] = 1;
+          } else {
+            const alpha = Math.min(200, Math.round(((210 - lum) / 82) * 255));
+            data[i] = 0; data[i + 1] = 0; data[i + 2] = 0; data[i + 3] = alpha;
+            maskData[pix] = lum < 170 ? 1 : 0;
+          }
         }
+        ctxLine.putImageData(imgData, 0, 0);
       }
 
-      ctxLine.putImageData(imgData, 0, 0);
-      if (onReady) onReady();
-    };
-
-    img.onerror = () => {
-      showToast('❌ Imagem "desenho-colorir.png" não encontrada.', '#c0392b');
-      if (onReady) onReady();
-    };
-  }
-
-  let persistTimer = null;
-  function persistirDesenho() {
-    clearTimeout(persistTimer);
-    persistTimer = setTimeout(() => {
-      try { localStorage.setItem(STORAGE_KEY, paintCanvas.toDataURL()); } catch (_) {}
-    }, 500);
-  }
-
-  function carregarDesenhoSalvo(onDone) {
-    const dataUrl = localStorage.getItem(STORAGE_KEY);
-    if (!dataUrl) { if (onDone) onDone(); return; }
-
-    const img = new Image();
-    img.onload = () => {
-      ctxPaint.drawImage(img, 0, 0, paintCanvas.width, paintCanvas.height);
-      if (onDone) onDone();
-    };
-    img.onerror = () => { if (onDone) onDone(); };
-    img.src = dataUrl;
-  }
-
-  function initAtelie() {
-    paletaDiv.innerHTML = '';
-    atelierCores.forEach(c => {
-      const sw = document.createElement('div');
-      sw.className = 'swatch' + (c === currentColor ? ' active' : '');
-      sw.style.backgroundColor = c;
-      sw.dataset.color = c;
-      sw.addEventListener('click', () => {
-        currentColor = c;
-        document.querySelectorAll('#paleta .swatch').forEach(s => s.classList.remove('active'));
-        sw.classList.add('active');
-      });
-      paletaDiv.appendChild(sw);
-    });
-
-    undoStack = []; redoStack = [];
-    updateToolUI();
-
-    carregarDesenhoBase(() => {
       ctxPaint.fillStyle = '#ffffff';
-      ctxPaint.fillRect(0, 0, paintCanvas.width, paintCanvas.height);
-      carregarDesenhoSalvo(() => {
+      ctxPaint.fillRect(0, 0, w, h);
+
+      const fim = () => {
         ateliePronto = true;
-        showToast('Escolha uma cor e toque no balde 🪣', '#1f6fd1');
-      });
-    });
+        ajustarBoard(true);
+      };
+      const salvo = lerSalvo(idx);
+      if (salvo) {
+        const s = new Image();
+        s.onload = () => { ctxPaint.drawImage(s, 0, 0, w, h); fim(); };
+        s.onerror = fim;
+        s.src = salvo;
+      } else {
+        fim();
+      }
+    };
+    img.onerror = () => showToast('❌ Imagem "' + DESENHOS[idx].arquivo + '" não encontrada.', '#c0392b');
+    img.src = DESENHOS[idx].arquivo;
   }
 
-  function updateToolUI() {
-    document.getElementById('toolBrush').classList.toggle('active', currentTool === 'brush');
-    document.getElementById('toolEraser').classList.toggle('active', currentTool === 'eraser');
-    document.getElementById('toolBucket').classList.toggle('active', currentTool === 'bucket');
+  /* ---------- histórico ---------- */
+  function updateHist() {
+    $('undoBtn').disabled = undoStack.length === 0;
+    $('redoBtn').disabled = redoStack.length === 0;
   }
 
   function saveState() {
     try {
       undoStack.push(ctxPaint.getImageData(0, 0, paintCanvas.width, paintCanvas.height));
-      if (undoStack.length > maxUndo) undoStack.shift();
+      if (undoStack.length > MAX_UNDO) undoStack.shift();
       redoStack = [];
     } catch (_) {}
-    persistirDesenho();
+    updateHist();
+    persistir();
   }
 
   function undo() {
-    if (undoStack.length === 0) return;
-    const state = undoStack.pop();
+    if (!undoStack.length) return;
+    const st = undoStack.pop();
     redoStack.push(ctxPaint.getImageData(0, 0, paintCanvas.width, paintCanvas.height));
-    ctxPaint.putImageData(state, 0, 0);
-    persistirDesenho();
+    ctxPaint.putImageData(st, 0, 0);
+    updateHist(); persistir();
   }
 
   function redo() {
-    if (redoStack.length === 0) return;
-    const state = redoStack.pop();
+    if (!redoStack.length) return;
+    const st = redoStack.pop();
     undoStack.push(ctxPaint.getImageData(0, 0, paintCanvas.width, paintCanvas.height));
-    ctxPaint.putImageData(state, 0, 0);
-    persistirDesenho();
+    ctxPaint.putImageData(st, 0, 0);
+    updateHist(); persistir();
   }
 
-  function clearCanvas() {
+  function limpar() {
+    if (!ateliePronto) return;
     saveState();
     ctxPaint.fillStyle = '#ffffff';
     ctxPaint.fillRect(0, 0, paintCanvas.width, paintCanvas.height);
-    persistirDesenho();
+    persistir();
+    showToast('Desenho limpo. Toque em desfazer para voltar.');
   }
 
+  /* ---------- balde de tinta ---------- */
   function floodFill(startX, startY, fillHex) {
     if (!maskData) return;
     const w = paintCanvas.width, h = paintCanvas.height;
@@ -240,25 +252,16 @@
       const neighbors = [startPos - 1, startPos + 1, startPos - w, startPos + w];
       let found = false;
       for (const n of neighbors) {
-        if (n >= 0 && n < w * h && maskData[n] === 0) {
-          startPos = n; startX = n % w; startY = Math.floor(n / w);
-          found = true; break;
-        }
+        if (n >= 0 && n < w * h && maskData[n] === 0) { startPos = n; found = true; break; }
       }
       if (!found) return;
     }
 
     const startIdx = startPos * 4;
-    const targetR = data[startIdx], targetG = data[startIdx + 1], targetB = data[startIdx + 2], targetA = data[startIdx + 3];
-
-    if (targetR === fillR && targetG === fillG && targetB === fillB && targetA === 255) return;
+    const tR = data[startIdx], tG = data[startIdx + 1], tB = data[startIdx + 2], tA = data[startIdx + 3];
+    if (tR === fillR && tG === fillG && tB === fillB && tA === 255) return;
 
     const tol = 60;
-    function matches(r, g, b, a) {
-      return Math.abs(r - targetR) <= tol && Math.abs(g - targetG) <= tol &&
-             Math.abs(b - targetB) <= tol && Math.abs(a - targetA) <= tol;
-    }
-
     const seen = new Uint8Array(w * h);
     const stack = [startPos];
 
@@ -269,7 +272,8 @@
       if (maskData[pos] === 1) continue;
 
       const x = pos % w, y = (pos / w) | 0, idx = pos * 4;
-      if (!matches(data[idx], data[idx + 1], data[idx + 2], data[idx + 3])) continue;
+      if (Math.abs(data[idx] - tR) > tol || Math.abs(data[idx + 1] - tG) > tol ||
+          Math.abs(data[idx + 2] - tB) > tol || Math.abs(data[idx + 3] - tA) > tol) continue;
 
       data[idx] = fillR; data[idx + 1] = fillG; data[idx + 2] = fillB; data[idx + 3] = 255;
 
@@ -281,68 +285,78 @@
     ctxPaint.putImageData(imageData, 0, 0);
   }
 
-  /* Coordenadas precisas de toque/mouse */
-  function getPos(e) {
-    const rect = paintCanvas.getBoundingClientRect();
-    const scaleX = paintCanvas.width / rect.width;
-    const scaleY = paintCanvas.height / rect.height;
+  /* ---------- cor ---------- */
+  const hex2 = v => v.toString(16).padStart(2, '0');
 
-    let clientX = e.clientX;
-    let clientY = e.clientY;
-
-    if (e.touches && e.touches.length > 0) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else if (e.changedTouches && e.changedTouches.length > 0) {
-      clientX = e.changedTouches[0].clientX;
-      clientY = e.changedTouches[0].clientY;
-    }
-
-    return {
-      x: Math.floor((clientX - rect.left) * scaleX),
-      y: Math.floor((clientY - rect.top) * scaleY)
-    };
+  function setCor(hex) {
+    corAtual = hex;
+    $('corAtual').style.backgroundColor = hex;
+    document.querySelectorAll('#paleta .atlSw').forEach(s =>
+      s.classList.toggle('ativa', s.dataset.color.toLowerCase() === hex.toLowerCase()));
+    const inp = $('corCustom');
+    if (inp && /^#[0-9a-f]{6}$/i.test(hex)) inp.value = hex;
   }
 
-  function startDrawing(e) {
-    if (e.cancelable) e.preventDefault();
-    if (!ateliePronto) return;
-    if (e.isPrimary === false) return;
-    try { paintCanvas.setPointerCapture(e.pointerId); } catch (_) {}
+  function pegarCor(x, y) {
+    try {
+      const d = ctxPaint.getImageData(x, y, 1, 1).data;
+      setCor('#' + hex2(d[0]) + hex2(d[1]) + hex2(d[2]));
+      showToast('Cor capturada!');
+    } catch (_) {}
+    setFerramenta(ferrAnterior === 'picker' ? 'brush' : ferrAnterior);
+  }
 
+  /* ---------- ferramentas ---------- */
+  function setModoMover(on) {
+    modoMover = on;
+    $('moverBtn').classList.toggle('ativa', on);
+    stage.classList.toggle('mover', on);
+  }
+
+  function setFerramenta(f) {
+    if (f !== ferramenta && ferramenta !== 'picker') ferrAnterior = ferramenta;
+    ferramenta = f;
+    document.querySelectorAll('.atlTool[data-tool]').forEach(b =>
+      b.classList.toggle('ativa', b.dataset.tool === f));
+    const usaTamanho = f === 'brush' || f === 'eraser';
+    brushSizeInput.disabled = !usaTamanho;
+    $('atlSize').classList.toggle('off', !usaTamanho);
+    setModoMover(false);
+  }
+
+  /* ---------- coordenadas ---------- */
+  function getPos(e) {
+    const rect = paintCanvas.getBoundingClientRect();
+    return {
+      x: Math.floor((e.clientX - rect.left) * (paintCanvas.width / rect.width)),
+      y: Math.floor((e.clientY - rect.top) * (paintCanvas.height / rect.height))
+    };
+  }
+  function posStage(e) {
+    const r = stage.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  const dentro = p => p.x >= 0 && p.x < paintCanvas.width && p.y >= 0 && p.y < paintCanvas.height;
+
+  /* ---------- traço ---------- */
+  function iniciarTraco(e) {
     const { x, y } = getPos(e);
-
-    if (currentTool === 'bucket') {
-      if (x >= 0 && x < paintCanvas.width && y >= 0 && y < paintCanvas.height) {
-        saveState();
-        floodFill(x, y, currentColor);
-        persistirDesenho();
-      }
-      return;
-    }
-
-    drawing = true;
+    drawing = true; drawId = e.pointerId; strokeT0 = Date.now();
     lastX = x; lastY = y;
     saveState();
-
     ctxPaint.beginPath();
     ctxPaint.arc(x, y, brushSize / 2, 0, Math.PI * 2);
-    ctxPaint.fillStyle = currentTool === 'eraser' ? '#ffffff' : currentColor;
+    ctxPaint.fillStyle = ferramenta === 'eraser' ? '#ffffff' : corAtual;
     ctxPaint.fill();
   }
 
-  function draw(e) {
-    if (!drawing) return;
-    if (e.cancelable) e.preventDefault();
-
-    const events = (e.getCoalescedEvents && e.getCoalescedEvents().length) ? e.getCoalescedEvents() : [e];
-
-    ctxPaint.strokeStyle = currentTool === 'eraser' ? '#ffffff' : currentColor;
+  function continuarTraco(e) {
+    const evs = (e.getCoalescedEvents && e.getCoalescedEvents().length) ? e.getCoalescedEvents() : [e];
+    ctxPaint.strokeStyle = ferramenta === 'eraser' ? '#ffffff' : corAtual;
     ctxPaint.lineWidth = brushSize;
     ctxPaint.lineCap = 'round';
     ctxPaint.lineJoin = 'round';
-
-    for (const ev of events) {
+    for (const ev of evs) {
       const { x, y } = getPos(ev);
       ctxPaint.beginPath();
       ctxPaint.moveTo(lastX, lastY);
@@ -352,14 +366,127 @@
     }
   }
 
-  function stopDrawing(e) {
-    if (drawing) {
-      drawing = false;
-      persistirDesenho();
+  function pararTraco() {
+    if (!drawing) return;
+    drawing = false;
+    persistir();
+  }
+
+  // um segundo dedo logo no início = era uma pinça, não um traço: desfaz o pontinho
+  function cancelarTraco() {
+    if (!drawing) return;
+    drawing = false;
+    if (Date.now() - strokeT0 < 300) {
+      const st = undoStack.pop();
+      if (st) ctxPaint.putImageData(st, 0, 0);
+      updateHist();
+    }
+    persistir();
+  }
+
+  /* ---------- gestos no palco ---------- */
+  const doisPontos = () => { const a = [...ptrs.values()]; return [a[0], a[1]]; };
+
+  function iniciarPinca() {
+    const [a, b] = doisPontos();
+    gesto = {
+      d0: Math.max(10, Math.hypot(a.x - b.x, a.y - b.y)),
+      mx0: (a.x + b.x) / 2, my0: (a.y + b.y) / 2,
+      s0: view.s, tx0: view.tx, ty0: view.ty
+    };
+  }
+
+  function atualizarPinca() {
+    const [a, b] = doisPontos();
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    const ns = Math.min(ZOOM_MAX, Math.max(1, gesto.s0 * d / gesto.d0));
+    view.tx = mx - ((gesto.mx0 - gesto.tx0) / gesto.s0) * ns;
+    view.ty = my - ((gesto.my0 - gesto.ty0) / gesto.s0) * ns;
+    view.s = ns;
+    aplicarView();
+  }
+
+  function executarToque(t) {
+    const p = getPos({ clientX: t.cx, clientY: t.cy });
+    if (!dentro(p)) return;
+    if (ferramenta === 'bucket') {
+      saveState();
+      floodFill(p.x, p.y, corAtual);
+      persistir();
+    } else if (ferramenta === 'picker') {
+      pegarCor(p.x, p.y);
     }
   }
 
+  stage.addEventListener('pointerdown', e => {
+    if (!ateliePronto) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+    const p = posStage(e);
+    ptrs.set(e.pointerId, p);
+
+    if (ptrs.size === 2) {
+      cancelarTraco();
+      tap = null; panLast = null; ignorar = true;
+      iniciarPinca();
+      return;
+    }
+    if (ptrs.size > 2 || ignorar) return;
+
+    if (modoMover) { panLast = { x: p.x, y: p.y }; return; }
+    if (ferramenta === 'brush' || ferramenta === 'eraser') {
+      iniciarTraco(e);
+    } else {
+      tap = { id: e.pointerId, x: p.x, y: p.y, t: Date.now(), cx: e.clientX, cy: e.clientY };
+    }
+  });
+
+  stage.addEventListener('pointermove', e => {
+    if (!ptrs.has(e.pointerId)) return;
+    const p = posStage(e);
+    ptrs.set(e.pointerId, p);
+
+    if (ptrs.size >= 2 && gesto) { atualizarPinca(); return; }
+    if (ignorar) return;
+
+    if (tap && tap.id === e.pointerId && Math.hypot(p.x - tap.x, p.y - tap.y) > 10) tap = null;
+
+    if (panLast && modoMover) {
+      view.tx += p.x - panLast.x;
+      view.ty += p.y - panLast.y;
+      panLast = { x: p.x, y: p.y };
+      aplicarView();
+      return;
+    }
+    if (drawing && e.pointerId === drawId) continuarTraco(e);
+  });
+
+  function fimPonteiro(e) {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.delete(e.pointerId);
+    if (drawing && e.pointerId === drawId) pararTraco();
+    if (tap && tap.id === e.pointerId) {
+      if (e.type === 'pointerup' && !ignorar && Date.now() - tap.t < 600) executarToque(tap);
+      tap = null;
+    }
+    if (ptrs.size < 2) gesto = null;
+    if (ptrs.size === 0) { ignorar = false; panLast = null; }
+  }
+  stage.addEventListener('pointerup', fimPonteiro);
+  stage.addEventListener('pointercancel', fimPonteiro);
+
+  // roda do mouse (computador)
+  stage.addEventListener('wheel', e => {
+    e.preventDefault();
+    const p = posStage(e);
+    zoomEm(e.deltaY < 0 ? 1.2 : 1 / 1.2, p.x, p.y);
+  }, { passive: false });
+
+  /* ---------- salvar ---------- */
   function savePNG() {
+    if (!ateliePronto) return;
     const temp = document.createElement('canvas');
     temp.width = paintCanvas.width;
     temp.height = paintCanvas.height;
@@ -380,37 +507,126 @@
       link.href = url;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 2000);
+      showToast('Obra salva!');
     }, 'image/png');
   }
 
-  document.getElementById('toolBrush').addEventListener('click', () => { currentTool = 'brush'; updateToolUI(); });
-  document.getElementById('toolEraser').addEventListener('click', () => { currentTool = 'eraser'; updateToolUI(); });
-  document.getElementById('toolBucket').addEventListener('click', () => { currentTool = 'bucket'; updateToolUI(); });
-  brushSizeInput.addEventListener('input', (e) => { brushSize = parseInt(e.target.value, 10); });
+  /* ---------- galeria ---------- */
+  function montarGaleria() {
+    const g = $('galeriaLista');
+    g.innerHTML = '';
+    DESENHOS.forEach((d, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'atlThumb' + (i === idxAtual ? ' ativa' : '');
 
-  document.getElementById('undoBtn').addEventListener('click', undo);
-  document.getElementById('redoBtn').addEventListener('click', redo);
-  document.getElementById('clearBtn').addEventListener('click', clearCanvas);
-  document.getElementById('saveBtn').addEventListener('click', savePNG);
-  document.getElementById('finishBtn').addEventListener('click', () => { mensagemFinal.classList.add('visivel'); });
+      const box = document.createElement('span');
+      box.className = 'atlThumbImg';
+      const salvo = i === idxAtual && ateliePronto ? paintCanvas.toDataURL() : lerSalvo(i);
+      if (salvo) box.style.backgroundImage = 'url(' + salvo + ')';
+      const im = document.createElement('img');
+      im.src = d.arquivo; im.alt = '';
+      box.appendChild(im);
 
-  document.getElementById('fecharAtelie').addEventListener('click', () => {
-    overlay.classList.remove('aberto');
-    overlay.setAttribute('aria-hidden', 'true');
-    drawing = false;
-  });
+      const nm = document.createElement('span');
+      nm.className = 'atlThumbNome';
+      nm.textContent = d.nome;
 
-  document.getElementById('atelie').addEventListener('click', (e) => {
-    e.preventDefault();
+      b.appendChild(box); b.appendChild(nm);
+      b.addEventListener('click', () => {
+        $('galeria').classList.remove('aberto');
+        if (i !== idxAtual) carregarDesenho(i);
+      });
+      g.appendChild(b);
+    });
+  }
+
+  /* ---------- montagem da interface ---------- */
+  function montarPaleta() {
+    const pal = $('paleta');
+    pal.innerHTML = '';
+    CORES.forEach(c => {
+      const sw = document.createElement('button');
+      sw.type = 'button';
+      sw.className = 'atlSw';
+      sw.style.backgroundColor = c;
+      sw.dataset.color = c;
+      sw.setAttribute('aria-label', 'Cor ' + c);
+      sw.addEventListener('click', () => {
+        setCor(c);
+        if (ferramenta === 'eraser' || ferramenta === 'picker') setFerramenta('brush');
+      });
+      pal.appendChild(sw);
+    });
+    setCor(corAtual);
+  }
+
+  function abrirAtelie() {
     overlay.classList.add('aberto');
     overlay.setAttribute('aria-hidden', 'false');
-    if (!atelieIniciado) { initAtelie(); atelieIniciado = true; }
+    if (!atelieIniciado) {
+      atelieIniciado = true;
+      montarPaleta();
+      setFerramenta('brush');
+      $('galeriaBtn').hidden = DESENHOS.length < 2;
+      let ultimo = 0;
+      try { ultimo = parseInt(localStorage.getItem(KEY_ULTIMO), 10) || 0; } catch (_) {}
+      if (ultimo < 0 || ultimo >= DESENHOS.length) ultimo = 0;
+      carregarDesenho(ultimo);
+    } else {
+      ajustarBoard(false);
+    }
+  }
+
+  function fecharAtelie() {
+    persistirAgora();
+    cancelarTraco();
+    ptrs.clear(); gesto = null; tap = null; ignorar = false; panLast = null;
+    document.querySelectorAll('.atlModal').forEach(m => m.classList.remove('aberto'));
+    overlay.classList.remove('aberto');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+
+  /* ---------- eventos dos botões ---------- */
+  document.querySelectorAll('.atlTool[data-tool]').forEach(b =>
+    b.addEventListener('click', () => setFerramenta(b.dataset.tool)));
+
+  $('corCustom').addEventListener('input', e => {
+    setCor(e.target.value);
+    if (ferramenta === 'eraser' || ferramenta === 'picker') setFerramenta('brush');
   });
 
-  /* Pointer Events (mouse, toque e caneta) */
-  paintCanvas.addEventListener('pointerdown', startDrawing);
-  paintCanvas.addEventListener('pointermove', draw);
-  paintCanvas.addEventListener('pointerup', stopDrawing);
-  paintCanvas.addEventListener('pointercancel', stopDrawing);
+  brushSizeInput.addEventListener('input', e => { brushSize = parseInt(e.target.value, 10); });
 
+  $('undoBtn').addEventListener('click', undo);
+  $('redoBtn').addEventListener('click', redo);
+  $('clearBtn').addEventListener('click', limpar);
+  $('saveBtn').addEventListener('click', savePNG);
+  $('galeriaBtn').addEventListener('click', () => { montarGaleria(); $('galeria').classList.add('aberto'); });
+  $('galeriaFechar').addEventListener('click', () => $('galeria').classList.remove('aberto'));
+
+  $('finishBtn').addEventListener('click', () => $('mensagemFinal').classList.add('aberto'));
+  $('finalSalvar').addEventListener('click', savePNG);
+  $('finalContinuar').addEventListener('click', () => $('mensagemFinal').classList.remove('aberto'));
+  $('finalConvite').addEventListener('click', fecharAtelie);
+
+  $('zoomIn').addEventListener('click', () => zoomEm(1.5, sw / 2, sh / 2));
+  $('zoomOut').addEventListener('click', () => zoomEm(1 / 1.5, sw / 2, sh / 2));
+  $('zoomReset').addEventListener('click', () => { view.s = 1; ajustarBoard(true); });
+  $('moverBtn').addEventListener('click', () => setModoMover(!modoMover));
+
+  $('fecharAtelie').addEventListener('click', fecharAtelie);
+  $('atelie').addEventListener('click', e => { e.preventDefault(); abrirAtelie(); });
+
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || !overlay.classList.contains('aberto')) return;
+    const aberto = overlay.querySelector('.atlModal.aberto');
+    if (aberto) aberto.classList.remove('aberto'); else fecharAtelie();
+  });
+
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => { if (overlay.classList.contains('aberto')) ajustarBoard(false); }).observe(stage);
+  } else {
+    window.addEventListener('resize', () => { if (overlay.classList.contains('aberto')) ajustarBoard(false); });
+  }
 })();
