@@ -7,7 +7,10 @@
      e inclua uma linha nova aqui, por exemplo:
        , { arquivo: 'desenho-2.png', nome: 'Arca de Noé' }                      */
   const DESENHOS = [
-    { arquivo: 'desenho-colorir.png', nome: 'Jesus pintando o mundo' }
+    { arquivo: 'desenho-colorir.png', nome: 'Jesus pintando o mundo' },
+    { arquivo: 'desenho-2.png', nome: 'Arca de Noé' },
+    { arquivo: 'desenho-3.png', nome: 'Os pequeninos' },
+    { arquivo: 'desenho-4.png', nome: 'Pedro, Tiago, João' }
   ];
 
   const CORES = [
