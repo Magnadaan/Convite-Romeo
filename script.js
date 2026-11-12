@@ -9,7 +9,7 @@ const CONFIG = {
   mapa: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Cherry House, Rua Oiapoque 93"),
   whatsapp: "+5521973387903",
   // Link do Google Forms para confirmar presença. Se ficar vazio ("") o botão usa o WhatsApp acima.
-  confirmacao: "",
+  confirmacao: "https://docs.google.com/forms/d/e/1FAIpQLSdWF0blv4lkjxGN-Ezh_A5hMpTikcndmR4lVDwPoD1yz-09FA/viewform?usp=publish-editor",
   selo: "Deus é o artista da minha história!",
   // Novo formato: array com ícones e textos
   sugestaoPresente: [
